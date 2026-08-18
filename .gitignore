@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+*.local
+*.log
+public/assets/paper-texture.png
+public/assets/paper-texture.webp

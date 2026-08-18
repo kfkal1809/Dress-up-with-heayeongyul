@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { initialGameState } from '../data/items'
 import type { GameState } from '../types'
 
-const STORAGE_KEY = 'haeyeongyeol-dress-up-v1'
+const STORAGE_KEY = 'haeyeongyeol-dress-up-v3'
 
 const loadGame = (): GameState => {
   try {

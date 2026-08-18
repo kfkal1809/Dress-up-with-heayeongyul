@@ -10,6 +10,14 @@ export type Category =
   | 'accessory'
   | 'background'
 
+export interface SpriteSpec {
+  atlas: string
+  index: number
+  columns: number
+  rows?: number
+  fit?: 'crop' | 'cell'
+}
+
 export interface DressItem {
   id: string
   name: string
@@ -18,6 +26,8 @@ export interface DressItem {
   color: string
   accent: string
   icon: string
+  sprite?: SpriteSpec
+  requiresHead?: boolean
 }
 
 export interface BackgroundItem {

@@ -223,152 +223,14 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.sprite-frame {
-  display: block;
-  background-image: var(--sprite-atlas);
-  background-repeat: no-repeat;
-  background-position: var(--sprite-x) var(--sprite-y);
-  background-size: var(--sprite-size);
-}
-
 .character-canvas {
-  --outfit-top: 25%;
-  --outfit-side: 5%;
-  --head-top: -1px;
-  --head-left: 6%;
-  --head-width: 88%;
-  --head-height: 44%;
-  position: relative;
   display: block;
-  width: min(88%, 188px);
-  height: 277px;
-  max-height: calc(100% - 39px);
+  width: min(100%, 218px);
+  max-height: calc(100% - 34px);
   overflow: visible;
   filter: drop-shadow(0 4px 2px rgba(40, 66, 81, .14));
   transform-origin: bottom center;
   transition: transform .2s ease, filter .2s ease;
-}
-
-.character-shadow {
-  position: absolute;
-  right: 16%;
-  bottom: 6px;
-  left: 16%;
-  z-index: 0;
-  height: 13px;
-  border-radius: 50%;
-  background: rgba(43, 72, 89, .18);
-  filter: blur(3px);
-}
-
-.character-outfit,
-.character-head,
-.character-hat,
-.character-veil,
-.character-accessory {
-  position: absolute;
-  pointer-events: none;
-}
-
-.character-outfit {
-  inset: 0;
-  z-index: 1;
-}
-
-.character-canvas.requires-head .character-outfit {
-  inset: var(--outfit-top) var(--outfit-side) 0;
-}
-
-/* The uploaded outfits share one SD body anchor.  Formal jackets are wider in
-   their source sheets, so only that group is narrowed to the same shoulder line. */
-.character-canvas.haenam.outfit-fit-wedding {
-  --outfit-side: 9%;
-}
-
-.character-canvas.haenyeo.outfit-fit-wedding {
-  --outfit-side: 4%;
-}
-
-.character-head {
-  top: var(--head-top);
-  left: var(--head-left);
-  z-index: 2;
-  width: var(--head-width);
-  height: var(--head-height);
-}
-
-.character-hat {
-  top: -10px;
-  left: 12%;
-  z-index: 3;
-  width: 76%;
-  height: 86px;
-}
-
-.character-veil {
-  top: -15px;
-  left: calc(50% - 67.5px);
-  z-index: 1;
-  width: 135px;
-  height: 270px;
-}
-
-.character-hat.cell-sprite-hat {
-  top: -70px;
-  left: calc(50% - 45px);
-  width: 90px;
-  height: 180px;
-}
-
-.character-hat-hy-extra-heart-glasses {
-  top: -30px;
-  left: calc(50% - 45px);
-  width: 90px;
-  height: 180px;
-}
-
-.character-accessory {
-  right: -7%;
-  bottom: 33px;
-  z-index: 4;
-  width: 52%;
-  height: 100px;
-}
-
-.reference-character.haenyeo .character-hat {
-  top: 0;
-  left: 13%;
-  width: 74%;
-  height: 78px;
-}
-
-.reference-character.haenyeo .character-hat.cell-sprite-hat {
-  top: -70px;
-  left: calc(50% - 45px);
-  width: 90px;
-  height: 180px;
-}
-
-.reference-character.haenyeo .character-hat-hy-extra-heart-glasses {
-  top: -30px;
-  left: calc(50% - 45px);
-  width: 90px;
-  height: 180px;
-}
-
-.reference-character.haenyeo .character-accessory {
-  right: -8%;
-  bottom: 30px;
-  width: 50%;
-  height: 96px;
-}
-
-.character-accessory.cell-sprite-accessory,
-.reference-character.haenyeo .character-accessory.cell-sprite-accessory {
-  right: -2%;
-  bottom: 13px;
-  width: 76px;
-  height: 152px;
 }
 
 .character-slot.selected .character-canvas {
@@ -412,12 +274,9 @@ input:focus-visible {
   outline: 0;
   color: #314b5f;
   background: transparent;
-  font-family: "Jua", "Arial Rounded MT Bold", "Noto Sans KR", sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: -.045em;
+  font-size: 13px;
+  font-weight: 900;
   text-align: center;
-  -webkit-text-stroke: .2px currentColor;
 }
 
 .nickname-field small {
@@ -943,25 +802,6 @@ input:focus-visible {
   text-shadow: 0 1px rgba(255, 255, 255, .85);
 }
 
-.item-visual .sprite-frame {
-  position: absolute;
-  inset: 3px;
-  z-index: 2;
-}
-
-.item-visual-outfit {
-  height: 70px;
-}
-
-.item-visual-hair {
-  height: 64px;
-}
-
-.item-visual-hat .sprite-frame,
-.item-visual-accessory .sprite-frame {
-  inset: 1px;
-}
-
 .item-card b {
   display: -webkit-box;
   overflow: hidden;
@@ -1112,7 +952,6 @@ input:focus-visible {
 
 .completion-mode .character-canvas {
   width: min(100%, 240px);
-  height: 344px;
   max-height: calc(100% - 44px);
 }
 
@@ -1135,12 +974,10 @@ input:focus-visible {
   color: #3f5d70;
   background: rgba(255, 253, 244, .91);
   box-shadow: 0 3px 10px rgba(42, 72, 89, .12);
-  font-family: "Jua", "Arial Rounded MT Bold", "Noto Sans KR", sans-serif;
-  font-size: 21px;
-  font-weight: 400;
-  letter-spacing: -.045em;
+  font-family: Georgia, "Noto Sans KR", serif;
+  font-size: 16px;
+  font-weight: 900;
   text-align: center;
-  -webkit-text-stroke: .25px currentColor;
 }
 
 .sailing-message {

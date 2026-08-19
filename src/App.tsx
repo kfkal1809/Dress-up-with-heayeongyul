@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CharacterCanvas } from './components/CharacterCanvas'
 import { SceneDecor } from './components/SceneDecor'
-import { SpriteFrame } from './components/SpriteFrame'
 import {
   backgrounds,
   categoryMeta,
@@ -10,9 +9,9 @@ import {
   itemsByCharacter,
 } from './data/items'
 import { usePersistentGame } from './hooks/usePersistentGame'
-import type { Category, CharacterKey, CharacterState } from './types'
+import type { Category, CharacterKey, CharacterState, DressItem } from './types'
 
-const editorCategories: Category[] = ['hair', 'outfit', 'hat', 'accessory', 'background']
+const editorCategories: Category[] = ['hair', 'top', 'bottom', 'outfit', 'shoes', 'hat', 'accessory', 'background']
 
 const characterLabel: Record<CharacterKey, string> = {
   haenam: '해남이',
@@ -20,6 +19,16 @@ const characterLabel: Record<CharacterKey, string> = {
 }
 
 const randomFrom = <T,>(values: T[]) => values[Math.floor(Math.random() * values.length)]
+
+const virtualNoneOutfit = (character: CharacterKey): DressItem => ({
+  id: 'none',
+  name: '상의 + 하의',
+  category: 'outfit',
+  gender: character,
+  color: '#fffaf0',
+  accent: '#88a6ba',
+  icon: '↺',
+})
 
 function App() {
   const [game, setGame] = usePersistentGame()
@@ -33,7 +42,8 @@ function App() {
 
   const visibleItems = useMemo(() => {
     if (category === 'background') return backgrounds
-    return getItems(activeCharacter, category)
+    const list = getItems(activeCharacter, category)
+    return category === 'outfit' ? [virtualNoneOutfit(activeCharacter), ...list] : list
   }, [activeCharacter, category])
 
   useEffect(() => {
@@ -56,10 +66,8 @@ function App() {
     }
 
     const update: Partial<CharacterState> = {}
-    if (category === 'hat' || category === 'accessory') {
+    if (category === 'hat' || category === 'accessory' || category === 'outfit') {
       update[category] = id === 'none' ? null : id
-    } else if (category === 'outfit') {
-      update.outfit = id
     } else {
       update[category] = id
       if (category === 'top' || category === 'bottom') update.outfit = null
@@ -69,19 +77,26 @@ function App() {
 
   const selectedItemId = () => {
     if (category === 'background') return game.background
-    if (category === 'hat' || category === 'accessory') return currentState[category] ?? 'none'
-    if (category === 'outfit') return currentState.outfit
+    if (category === 'hat' || category === 'accessory' || category === 'outfit') return currentState[category] ?? 'none'
     return currentState[category]
   }
 
   const randomizeCharacter = (character: CharacterKey) => {
     const hair = randomFrom(getItems(character, 'hair')).id
+    const shoes = randomFrom(getItems(character, 'shoes')).id
     const hat = randomFrom(getItems(character, 'hat')).id
     const accessory = randomFrom(getItems(character, 'accessory')).id
+    const useOutfit = Math.random() > 0.55
+    const outfit = useOutfit ? randomFrom(getItems(character, 'outfit')).id : null
+    const top = randomFrom(getItems(character, 'top')).id
+    const bottom = randomFrom(getItems(character, 'bottom')).id
 
     updateCharacter(character, {
       hair,
-      outfit: randomFrom(getItems(character, 'outfit')).id,
+      top,
+      bottom,
+      outfit,
+      shoes,
       hat: hat === 'none' ? null : hat,
       accessory: accessory === 'none' ? null : accessory,
     })
@@ -97,10 +112,14 @@ function App() {
       const previous = game[character]
       const hat = randomFrom(getItems(character, 'hat')).id
       const accessory = randomFrom(getItems(character, 'accessory')).id
+      const useOutfit = Math.random() > 0.55
       return {
         ...previous,
         hair: randomFrom(getItems(character, 'hair')).id,
-        outfit: randomFrom(getItems(character, 'outfit')).id,
+        top: randomFrom(getItems(character, 'top')).id,
+        bottom: randomFrom(getItems(character, 'bottom')).id,
+        outfit: useOutfit ? randomFrom(getItems(character, 'outfit')).id : null,
+        shoes: randomFrom(getItems(character, 'shoes')).id,
         hat: hat === 'none' ? null : hat,
         accessory: accessory === 'none' ? null : accessory,
       }
@@ -121,15 +140,15 @@ function App() {
     setToast(`${characterLabel[activeCharacter]} 처음 모습으로 돌아왔어요`)
   }
 
-  const outfitCount = (character: CharacterKey) => itemsByCharacter[character].filter((item) => item.sprite).length
+  const outfitCount = (character: CharacterKey) => itemsByCharacter[character].filter((item) => item.category !== 'hair').length
 
   return (
     <main className="page-shell">
       <section className={`game-card ${completed ? 'completion-mode' : ''}`}>
         <header className="game-header">
-          <div className="header-kicker"><span>✦</span> 해연결 옷입히기 <span>✦</span></div>
-          <h1>해남이 <b>♥</b> 해녀</h1>
-          {!completed && <p>시안 속 코디로 우리 둘을 귀엽게 꾸며주세요!</p>}
+          <div className="header-kicker"><span>⚓</span> 해기사와 연인들의 항해일지 <span>⚓</span></div>
+          <h1>해남이 <b>♥</b> 해녀 옷입히기</h1>
+          {!completed && <p>두 사람에게 찰떡같은 항해룩을 입혀주세요!</p>}
         </header>
 
         <section
@@ -138,7 +157,7 @@ function App() {
         >
           <SceneDecor background={selectedBackground.id} />
           <div className="stage-top-label">
-            <span>{completed ? '♥ 우리 커플 완성 ♥' : selectedBackground.icon}</span>
+            <span>{completed ? '⚓ OUR SAILING DIARY ⚓' : selectedBackground.icon}</span>
           </div>
           <div className="character-row">
             {(['haenam', 'haenyeo'] as CharacterKey[]).map((character) => (
@@ -173,7 +192,7 @@ function App() {
               </article>
             ))}
           </div>
-          {completed && <p className="sailing-message">오늘도 함께라서 행복해 <span>♥</span></p>}
+          {completed && <p className="sailing-message">오늘도 무사히 항해 중 <span>♥</span></p>}
         </section>
 
         {completed ? (
@@ -237,10 +256,10 @@ function App() {
                     aria-selected={selected}
                   >
                     <span
-                      className={`item-visual item-visual-${category}`}
+                      className="item-visual"
                       style={{ '--item-color': dressItem.color, '--item-accent': dressItem.accent } as React.CSSProperties}
                     >
-                      {'sprite' in dressItem && dressItem.sprite ? <SpriteFrame sprite={dressItem.sprite} /> : <i>{dressItem.icon}</i>}
+                      <i>{dressItem.icon}</i>
                     </span>
                     <b>{dressItem.name}</b>
                     {selected && <em aria-hidden="true">✓</em>}
@@ -263,7 +282,7 @@ function App() {
         )}
 
         <footer className="game-footer">
-          <span>〰</span> 바다의 스타일로 우리만의 커플룩을 꾸며봐! <span>♥</span>
+          <span>〰</span> 바다의 스타일로 나만의 항해를 꾸며봐! <span>⚓</span>
         </footer>
 
         {toast && <div className="toast" role="status">{toast}</div>}

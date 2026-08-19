@@ -61,7 +61,7 @@ export function SceneDecor({ background }: SceneDecorProps) {
           <span className="heart-cloud heart-a">♥</span>
           <span className="heart-cloud heart-b">♡</span>
           <span className="heart-cloud heart-c">♥</span>
-          <span className="heart-ribbon">해남이 ♥ 해녀</span>
+          <span className="heart-ribbon">OUR SAILING DIARY</span>
         </div>
       )
     default:

@@ -33,6 +33,10 @@ jobs:
         continue-on-error: true
         if: steps.npm_ci.outcome == 'success'
         run: npm run build
+      - id: recovery
+        name: Inspect corrupt asset recovery candidates
+        continue-on-error: true
+        run: node .github/scripts/recover-corrupt-assets.mjs
       - id: install_deps
         name: Install diagnostic dependencies
         continue-on-error: true
@@ -88,7 +92,7 @@ jobs:
           git add .github/diagnostics/
           git commit -m 'test: update asset diagnostics [skip ci]' || exit 0
           git push
-      - name: Upload screenshots and report
+      - name: Upload screenshots, source assets, recovery candidates and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -96,4 +100,5 @@ jobs:
           path: |
             test-results/
             .github/diagnostics/latest.json
+            public/assets/sprites/
           if-no-files-found: ignore

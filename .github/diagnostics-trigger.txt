@@ -1,0 +1,1 @@
+Trigger Playwright diagnostics for current production and local build.

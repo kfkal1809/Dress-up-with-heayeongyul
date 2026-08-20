@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { PNG } from 'pngjs'
 import { chromium } from 'playwright'
 
 const ROOT = process.cwd()
@@ -24,28 +23,67 @@ const assetNames = [
 function analyzePng(name) {
   const filePath = path.join(ROOT, 'public', 'assets', 'sprites', name)
   const buffer = fs.readFileSync(filePath)
-  const png = PNG.sync.read(buffer)
-  let minX = png.width, minY = png.height, maxX = -1, maxY = -1, nonTransparent = 0
-  for (let y = 0; y < png.height; y++) {
-    for (let x = 0; x < png.width; x++) {
-      const alpha = png.data[(y * png.width + x) * 4 + 3]
-      if (alpha > 8) {
-        nonTransparent++
-        if (x < minX) minX = x
-        if (x > maxX) maxX = x
-        if (y < minY) minY = y
-        if (y > maxY) maxY = y
-      }
-    }
-  }
-  return {
+  const signature = Buffer.from([137,80,78,71,13,10,26,10])
+  const hasPngSignature = buffer.length >= 24 && buffer.subarray(0, 8).equals(signature)
+  const result = {
     file: name,
     bytes: buffer.length,
-    width: png.width,
-    height: png.height,
-    alphaCoverage: Number((nonTransparent / (png.width * png.height)).toFixed(4)),
-    alphaBounds: maxX >= 0 ? { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 } : null,
+    hasPngSignature,
+    width: hasPngSignature ? buffer.readUInt32BE(16) : null,
+    height: hasPngSignature ? buffer.readUInt32BE(20) : null,
+    chunks: [],
+    iendFound: false,
+    trailingBytes: null,
+    structureError: null,
   }
+
+  if (!hasPngSignature) return result
+
+  try {
+    let offset = 8
+    let safety = 0
+    while (offset + 12 <= buffer.length && safety++ < 10000) {
+      const length = buffer.readUInt32BE(offset)
+      const type = buffer.subarray(offset + 4, offset + 8).toString('ascii')
+      const end = offset + 12 + length
+      if (end > buffer.length) {
+        result.structureError = `chunk ${type} length ${length} exceeds file at offset ${offset}`
+        break
+      }
+      result.chunks.push({ type, length })
+      offset = end
+      if (type === 'IEND') {
+        result.iendFound = true
+        result.trailingBytes = buffer.length - offset
+        if (result.trailingBytes > 0) {
+          result.trailingPrefixHex = buffer.subarray(offset, Math.min(buffer.length, offset + 32)).toString('hex')
+          result.trailingPrefixAscii = buffer.subarray(offset, Math.min(buffer.length, offset + 32)).toString('ascii').replace(/[^ -~]/g, '.')
+        }
+        break
+      }
+    }
+    if (!result.iendFound && !result.structureError) result.structureError = 'IEND not found'
+  } catch (error) {
+    result.structureError = String(error)
+  }
+
+  return result
+}
+
+async function decodeImageInBrowser(page, url) {
+  return page.evaluate((src) => new Promise((resolve) => {
+    const img = new Image()
+    const timer = setTimeout(() => resolve({ src, loaded: false, timeout: true, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight }), 15000)
+    img.onload = () => {
+      clearTimeout(timer)
+      resolve({ src, loaded: true, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight })
+    }
+    img.onerror = () => {
+      clearTimeout(timer)
+      resolve({ src, loaded: false, error: true, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight })
+    }
+    img.src = src
+  }), url)
 }
 
 async function diagnoseSite(browser, label, baseUrl) {
@@ -61,11 +99,14 @@ async function diagnoseSite(browser, label, baseUrl) {
   page.on('pageerror', err => pageErrors.push(String(err)))
   page.on('requestfailed', req => failedRequests.push({ url: req.url(), error: req.failure()?.errorText ?? 'unknown' }))
 
+  await page.goto('about:blank')
+
   const assetHttp = []
-  for (const name of ['haenam-hair.png', 'haenyeo-hair.png', 'haenam-sailor-outfits.png']) {
+  const imageDecode = []
+  for (const name of assetNames) {
     const url = `${baseUrl}/assets/sprites/${name}`
     try {
-      const res = await context.request.get(url, { failOnStatusCode: false })
+      const res = await context.request.get(url, { failOnStatusCode: false, timeout: 30000 })
       const body = await res.body()
       assetHttp.push({
         name,
@@ -78,13 +119,14 @@ async function diagnoseSite(browser, label, baseUrl) {
     } catch (error) {
       assetHttp.push({ name, url, error: String(error) })
     }
+    imageDecode.push({ name, ...(await decodeImageInBrowser(page, url)) })
   }
 
   const response = await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 60000 })
   const initial = await page.evaluate(() => ({
     href: location.href,
     title: document.title,
-    bodyText: document.body.innerText.slice(0, 500),
+    bodyText: document.body.innerText.slice(0, 800),
     images: [...document.images].map(img => ({
       src: img.src,
       complete: img.complete,
@@ -93,6 +135,7 @@ async function diagnoseSite(browser, label, baseUrl) {
       width: img.getBoundingClientRect().width,
       height: img.getBoundingClientRect().height,
     })),
+    categoryButtons: [...document.querySelectorAll('.category-tabs button')].map(el => el.textContent?.trim()),
   }))
 
   async function clickCards(count) {
@@ -100,7 +143,7 @@ async function diagnoseSite(browser, label, baseUrl) {
     const n = Math.min(count, await cards.count())
     for (let i = 0; i < n; i++) {
       await cards.nth(i).click()
-      await page.waitForTimeout(120)
+      await page.waitForTimeout(150)
     }
   }
 
@@ -114,19 +157,19 @@ async function diagnoseSite(browser, label, baseUrl) {
       await clickCards(3)
       interactions.push('haenyeo hair x3')
     }
-    const outfitTab = page.getByRole('button', { name: /^.*옷$/ })
+    const outfitTab = page.locator('.category-tabs button').filter({ hasText: '옷' })
     if (await outfitTab.count()) {
       await outfitTab.first().click()
       await clickCards(3)
       interactions.push('outfit x3')
     }
-    const hatTab = page.getByRole('button', { name: /모자/ })
+    const hatTab = page.locator('.category-tabs button').filter({ hasText: '모자' })
     if (await hatTab.count()) {
       await hatTab.first().click()
       await clickCards(2)
       interactions.push('hat x2')
     }
-    const accessoryTab = page.getByRole('button', { name: /소품/ })
+    const accessoryTab = page.locator('.category-tabs button').filter({ hasText: '소품' })
     if (await accessoryTab.count()) {
       await accessoryTab.first().click()
       await clickCards(2)
@@ -162,6 +205,7 @@ async function diagnoseSite(browser, label, baseUrl) {
     baseUrl,
     documentStatus: response?.status() ?? null,
     assetHttp,
+    imageDecode,
     initial,
     interactions,
     after,

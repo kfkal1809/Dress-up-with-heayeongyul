@@ -1,0 +1,42 @@
+name: Dress-up asset diagnostics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install diagnostic dependencies
+        run: npm install --no-save playwright pngjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/dressup-preview.log 2>&1 &
+          echo $! > /tmp/dressup-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/dressup-preview.log
+          exit 1
+      - name: Run browser and asset diagnostics
+        run: node .github/scripts/asset-diagnostics.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dress-up-asset-diagnostics
+          path: test-results/
+          if-no-files-found: ignore

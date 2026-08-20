@@ -3,7 +3,12 @@ name: Dress-up asset diagnostics
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/diagnostics/**'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   diagnose:
@@ -33,6 +38,16 @@ jobs:
           exit 1
       - name: Run browser and asset diagnostics
         run: node .github/scripts/asset-diagnostics.mjs
+      - name: Persist diagnostics report
+        if: always()
+        run: |
+          if [ -f .github/diagnostics/latest.json ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add .github/diagnostics/latest.json
+            git commit -m 'test: update asset diagnostics [skip ci]' || exit 0
+            git push
+          fi
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4

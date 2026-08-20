@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths-ignore:
       - '.github/diagnostics/**'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -60,7 +62,7 @@ jobs:
         if: steps.install_browser.outcome == 'success' && steps.preview.outcome == 'success'
         run: node .github/scripts/asset-diagnostics.mjs
       - name: Persist diagnostics status and report
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         env:
           NPM_CI: ${{ steps.npm_ci.outcome }}
           BUILD: ${{ steps.build.outcome }}
@@ -86,10 +88,12 @@ jobs:
           git add .github/diagnostics/
           git commit -m 'test: update asset diagnostics [skip ci]' || exit 0
           git push
-      - name: Upload screenshots
+      - name: Upload screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dress-up-asset-diagnostics
-          path: test-results/
+          path: |
+            test-results/
+            .github/diagnostics/latest.json
           if-no-files-found: ignore

@@ -171,19 +171,24 @@ async function diagnoseSite(browser, label, baseUrl) {
   }
 }
 
-const diskAssets = assetNames.map(analyzePng)
-console.log('ASSET_DISK_REPORT_START')
-console.log(JSON.stringify(diskAssets, null, 2))
-console.log('ASSET_DISK_REPORT_END')
+const report = {
+  generatedAt: new Date().toISOString(),
+  commit: process.env.GITHUB_SHA ?? null,
+  diskAssets: assetNames.map(analyzePng),
+  browser: [],
+}
 
 const browser = await chromium.launch({ headless: true })
 try {
-  const results = []
-  results.push(await diagnoseSite(browser, 'local', 'http://127.0.0.1:4173'))
-  results.push(await diagnoseSite(browser, 'production', 'https://dress-up-with-heayeongyul.vercel.app'))
-  console.log('BROWSER_DIAGNOSTICS_START')
-  console.log(JSON.stringify(results, null, 2))
-  console.log('BROWSER_DIAGNOSTICS_END')
+  report.browser.push(await diagnoseSite(browser, 'local', 'http://127.0.0.1:4173'))
+  report.browser.push(await diagnoseSite(browser, 'production', 'https://dress-up-with-heayeongyul.vercel.app'))
 } finally {
   await browser.close()
 }
+
+fs.mkdirSync('.github/diagnostics', { recursive: true })
+fs.writeFileSync('.github/diagnostics/latest.json', JSON.stringify(report, null, 2) + '\n')
+
+console.log('ASSET_DIAGNOSTICS_START')
+console.log(JSON.stringify(report, null, 2))
+console.log('ASSET_DIAGNOSTICS_END')

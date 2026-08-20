@@ -1,0 +1,9 @@
+{
+  "sha": "ec24b4baf7e988ab96196a911f300e0b95738c16",
+  "npmCi": "success",
+  "build": "success",
+  "installDeps": "success",
+  "installBrowser": "success",
+  "preview": "success",
+  "diagnose": "failure"
+}
